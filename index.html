@@ -218,9 +218,16 @@
         }
 
         // --- 增強版圖片加載系統 ---
+        // --- 修改後的圖片加載系統 ---
         function loadPredefinedImages() {
             const loader = new THREE.TextureLoader();
-            CONFIG.preload.images.forEach(url => {
+            
+            // 1. (選擇性) 如果您有特定的網路圖片想保留，可以放在這裡，不想用就留空陣列 []
+            const onlineImages = [
+                // 'https://images.unsplash.com/photo-1543589077-47d81606c1bf?q=80&w=600', 
+            ];
+
+            onlineImages.forEach(url => {
                 loader.load(url, 
                     (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); },
                     undefined,
@@ -228,22 +235,37 @@
                 );
             });
 
-            if (CONFIG.preload.autoScanLocal) {
-                for (let i = 1; i <= CONFIG.preload.scanCount; i++) {
-                    const pathJpg = `./images/(${i}).jpg`;
-                    const pathPng = `./images/(${i}).png`;
-                    loader.load(pathJpg, 
-                        (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); },
+            // 2. 自動掃描本地 images 資料夾
+            // 設定您資料夾裡大約有多少張照片，設大一點沒關係 (例如 50)
+            const scanCount = 50; 
+            
+            // 設定您的資料夾路徑，請確認是 './images/' 還是 './image/'
+            const folderPath = './images/'; 
+
+            for (let i = 1; i <= scanCount; i++) {
+                // 嘗試載入各種格式：(1).jpg, (1).png, 1.jpg, 1.png
+                const formats = [
+                    `(${i}).jpg`, // 格式 A: (1).jpg
+                    `(${i}).png`, // 格式 A: (1).png
+                    `${i}.jpg`,   // 格式 B: 1.jpg
+                    `${i}.png`,   // 格式 B: 1.png
+                    `${i}.jpeg`   // 格式 B: 1.jpeg
+                ];
+
+                formats.forEach(filename => {
+                    loader.load(
+                        folderPath + filename,
+                        (t) => { 
+                            t.colorSpace = THREE.SRGBColorSpace; 
+                            addPhotoToScene(t); 
+                            // console.log(`Loaded: ${filename}`); //除錯用
+                        },
                         undefined,
-                        () => {
-                             loader.load(pathPng, 
-                                (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); },
-                                undefined,
-                                () => {} 
-                             );
+                        (err) => { 
+                            // 載入失敗通常是因為檔案不存在，這裡是正常的，不用報錯
                         }
                     );
-                }
+                });
             }
         }
 
